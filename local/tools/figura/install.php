@@ -1,16 +1,16 @@
 <?php
 
 /**
- * Установщик задач 1–2: открыть /local/tools/figura/install.php администратором.
- * Изменения разрешены только POST-запросом с сессионным токеном Битрикса.
- * Структура и данные создаются разными запросами, чтобы обновились метаданные ORM.
- * Повторный последовательный запуск находит уже созданные сущности; автоматического удаления нет.
+ * Установщик задач 1–2. Структура и данные создаются в два шага,
+ * чтобы между запросами обновились метаданные ORM. Запускать администратором.
  */
 use Bitrix\Crm\Service\Container;
 use Bitrix\Main\Context;
-use Figura\Equipment\Config;
-use Figura\Equipment\CreateHighloadBlock;
-use Figura\Equipment\CreateSmartProcess;
+use function Figura\Equipment\loadModules;
+use function Figura\Equipment\createEquipmentBlock;
+use function Figura\Equipment\createSmartProcess;
+use function Figura\Equipment\createTestDealAndItem;
+use function Figura\Equipment\addTestEquipment;
 
 require $_SERVER['DOCUMENT_ROOT'] . '/bitrix/modules/main/include/prolog_before.php';
 if (!$USER->IsAuthorized() || !$USER->IsAdmin()) {
@@ -33,15 +33,15 @@ if ($request->isPost()) {
         if (!check_bitrix_sessid()) {
             throw new RuntimeException('Сессия истекла. Обновите страницу.');
         }
-        Config::requireModules();
+        loadModules();
         if ($request->getPost('step') === 'schema') {
-            $blockId = CreateHighloadBlock::run();
-            $entityTypeId = CreateSmartProcess::ensureType((int)$USER->GetID());
+            $blockId = createEquipmentBlock();
+            $entityTypeId = createSmartProcess((int)$USER->GetID());
             $message = 'Структура создана. ID HL-блока: ' . $blockId . '; entityTypeId: ' . $entityTypeId . '. Теперь выполните шаг 2.';
         } elseif ($request->getPost('step') === 'data') {
-            $demo = CreateSmartProcess::seed((int)$USER->GetID());
-            $equipmentIds = CreateHighloadBlock::seed($demo['DEAL_ID']);
-            $message = 'Тестовые данные готовы. ID оборудования: ' . implode(', ', $equipmentIds) . '.';
+            $demo = createTestDealAndItem((int)$USER->GetID());
+            addTestEquipment($demo['DEAL_ID']);
+            $message = 'Тестовые данные готовы.';
         } else {
             throw new RuntimeException('Неизвестный шаг установки.');
         }

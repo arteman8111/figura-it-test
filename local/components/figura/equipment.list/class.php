@@ -1,6 +1,6 @@
 <?php
 
-/** Вход компонента Битрикса. Основная логика задачи 3 вынесена в отдельный нумерованный файл. */
+// Основная логика находится в файле задачи 3.
 if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
     exit;
 }
@@ -12,6 +12,6 @@ class FiguraEquipmentListComponent extends CBitrixComponent
 {
     public function executeComponent()
     {
-        \Figura\Equipment\EquipmentList::execute($this);
+        \Figura\Equipment\showEquipmentList($this);
     }
 }
