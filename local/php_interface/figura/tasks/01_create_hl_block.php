@@ -91,11 +91,16 @@ function createEquipmentBlock(): int
     return $blockId;
 }
 
-function addTestEquipment(int $dealId): void
+// Можно передать свои названия оборудования вторым аргументом.
+function addTestEquipment(int $dealId, array $names = []): void
 {
     checkReadAccess(\CCrmOwnerType::Deal, $dealId);
     $dataClass = getEquipmentClass();
-    $names = ['router' => 'Тестовый роутер', 'laptop' => 'Тестовый ноутбук', 'monitor' => 'Тестовый монитор'];
+    $names = $names ?: [
+        'router' => 'Тестовый роутер',
+        'laptop' => 'Тестовый ноутбук',
+        'monitor' => 'Тестовый монитор',
+    ];
     foreach (getEquipmentTypes() as $typeId => $type) {
         if (!isset($names[$type['XML_ID']])) {
             continue;

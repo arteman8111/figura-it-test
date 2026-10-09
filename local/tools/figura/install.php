@@ -40,7 +40,12 @@ if ($request->isPost()) {
             $message = 'Структура создана. ID HL-блока: ' . $blockId . '; entityTypeId: ' . $entityTypeId . '. Теперь выполните шаг 2.';
         } elseif ($request->getPost('step') === 'data') {
             $demo = createTestDealAndItem((int)$USER->GetID());
-            addTestEquipment($demo['DEAL_ID']);
+            $mockEquipment = [
+                'router' => 'Роутер Keenetic Extra',
+                'laptop' => 'Ноутбук Lenovo ThinkPad',
+                'monitor' => 'Монитор Samsung 24',
+            ];
+            addTestEquipment($demo['DEAL_ID'], $mockEquipment);
             $message = 'Тестовые данные готовы.';
         } else {
             throw new RuntimeException('Неизвестный шаг установки.');
