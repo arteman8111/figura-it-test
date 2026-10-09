@@ -1,4 +1,8 @@
 <?php
+/**
+Задача 3. Получаем оборудование из HL-блока и передаём строки в шаблон с гридом и фильтром.
+ Условие по сделке всегда добавляем на сервере. Сброс фильтра его не убирает.
+ */
 
 namespace Figura\Equipment;
 
@@ -7,23 +11,20 @@ use Bitrix\Main\Type\DateTime;
 use Bitrix\Main\UI\Filter\Options as FilterOptions;
 use Bitrix\Main\UI\PageNavigation;
 
-/**
- * Задача 3. Получаем оборудование из HL-блока и передаём строки в шаблон с гридом и фильтром.
- * Условие по сделке всегда добавляем на сервере. Сброс фильтра его не убирает.
- */
-if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
+if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
     exit;
-}
 
+// Собираем условия для поиска оборудования в HL-блоке
 function buildEquipmentFilter(int $dealId, array $values): array
 {
     if ($dealId <= 0) {
         throw new \DomainException('Не задана сделка.');
     }
     $filter = ['=UF_DEAL_ID' => $dealId];
+
     foreach (['FIND', 'UF_NAME'] as $key) {
-        if (isset($values[$key]) && is_scalar($values[$key]) && trim((string)$values[$key]) !== '') {
-            $filter[] = ['%UF_NAME' => trim((string)$values[$key])];
+        if (isset($values[$key]) && is_scalar($values[$key]) && trim((string) $values[$key]) !== '') {
+            $filter[] = ['%UF_NAME' => trim((string) $values[$key])];
         }
     }
     if (isset($values['UF_TYPE']) && $values['UF_TYPE'] !== '') {
@@ -54,6 +55,7 @@ function buildEquipmentFilter(int $dealId, array $values): array
     return $filter;
 }
 
+// сортировка для запроса к HL-блоку
 function getEquipmentOrder(array $sort): array
 {
     $field = array_key_first($sort);
@@ -64,15 +66,16 @@ function getEquipmentOrder(array $sort): array
     return [$field => $direction] + ['ID' => 'DESC'];
 }
 
+// полная логика для вывода таблицы оборудования
 function showEquipmentList(\CBitrixComponent $component): void
 {
     try {
         loadModules();
         $params = $component->arParams;
-        if ((int)($params['SMART_ITEM_ID'] ?? 0) > 0) {
-            $dealId = getLinkedDealId((int)($params['SMART_ENTITY_TYPE_ID'] ?? 0), (int)$params['SMART_ITEM_ID']);
+        if ((int) ($params['SMART_ITEM_ID'] ?? 0) > 0) {
+            $dealId = getLinkedDealId((int) ($params['SMART_ENTITY_TYPE_ID'] ?? 0), (int) $params['SMART_ITEM_ID']);
         } else {
-            $dealId = (int)($params['DEAL_ID'] ?? 0);
+            $dealId = (int) ($params['DEAL_ID'] ?? 0);
             checkReadAccess(\CCrmOwnerType::Deal, $dealId);
         }
 
@@ -88,7 +91,7 @@ function showEquipmentList(\CBitrixComponent $component): void
         $sorting = $gridOptions->getSorting(['sort' => ['ID' => 'desc'], 'vars' => ['by' => 'by', 'order' => 'order']]);
         $order = getEquipmentOrder($sorting['sort']);
         $navParams = $gridOptions->getNavParams(['nPageSize' => 20]);
-        $pageSize = in_array((int)$navParams['nPageSize'], [10, 20, 50, 100], true) ? (int)$navParams['nPageSize'] : 20;
+        $pageSize = in_array((int) $navParams['nPageSize'], [10, 20, 50, 100], true) ? (int) $navParams['nPageSize'] : 20;
         $nav = new PageNavigation($gridId);
         $nav->allowAllRecords(false)->setPageSize($pageSize)->initFromUri();
 
@@ -105,27 +108,31 @@ function showEquipmentList(\CBitrixComponent $component): void
         $rows = [];
         while ($row = $result->fetch()) {
             $rows[] = [
-                'id' => (int)$row['ID'],
+                'id' => (int) $row['ID'],
                 'data' => $row,
                 'columns' => [
-                    'ID' => (int)$row['ID'],
-                    'UF_NAME' => htmlspecialcharsbx((string)$row['UF_NAME']),
-                    'UF_TYPE' => htmlspecialcharsbx((string)($types[$row['UF_TYPE']] ?? 'Не указан')),
-                    'UF_CREATED_TIME' => htmlspecialcharsbx((string)$row['UF_CREATED_TIME']),
-                    'UF_DEAL_ID' => (int)$row['UF_DEAL_ID'],
+                    'ID' => (int) $row['ID'],
+                    'UF_NAME' => htmlspecialcharsbx((string) $row['UF_NAME']),
+                    'UF_TYPE' => htmlspecialcharsbx((string) ($types[$row['UF_TYPE']] ?? 'Не указан')),
+                    'UF_CREATED_TIME' => htmlspecialcharsbx((string) $row['UF_CREATED_TIME']),
+                    'UF_DEAL_ID' => (int) $row['UF_DEAL_ID'],
                 ],
             ];
         }
         $component->arResult = [
-            'GRID_ID' => $gridId, 'FILTER_FIELDS' => $fields, 'ROWS' => $rows,
-            'SORT' => $order, 'SORT_VARS' => $sorting['vars'],
-            'NAV_OBJECT' => $nav, 'TOTAL' => $total,
+            'GRID_ID' => $gridId,
+            'FILTER_FIELDS' => $fields,
+            'ROWS' => $rows,
+            'SORT' => $order,
+            'SORT_VARS' => $sorting['vars'],
+            'NAV_OBJECT' => $nav,
+            'TOTAL' => $total,
         ];
         $component->includeComponentTemplate();
     } catch (\DomainException $exception) {
         ShowError(htmlspecialcharsbx($exception->getMessage()));
     } catch (\Throwable $exception) {
-        AddMessage2Log((string)$exception, 'figura.equipment');
+        AddMessage2Log((string) $exception, 'figura.equipment');
         ShowError('Не удалось загрузить оборудование. Проверьте установку.');
     }
 }

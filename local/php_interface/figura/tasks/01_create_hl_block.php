@@ -1,4 +1,16 @@
 <?php
+/**
+ * Задача 1. 
+Создайте HL-блок «Оборудование» со следующими полями:
+•	UF_NAME — «Название», строка.
+•	UF_TYPE — «Тип оборудования», список со значениями: 
+o	Роутер
+o	Ноутбук
+o	Монитор
+•	UF_CREATED_TIME — «Дата создания», дата/время.
+•	UF_DEAL_ID — «ID сделки», число.
+Наполните HL-блок тестовыми записями.
+ */
 
 namespace Figura\Equipment;
 
@@ -6,18 +18,18 @@ use Bitrix\Highloadblock\HighloadBlockLangTable;
 use Bitrix\Highloadblock\HighloadBlockTable;
 use Bitrix\Main\Type\DateTime;
 
-/**
- * Задача 1. Создаём HL-блок и его поля. Тип оборудования хранится как ID варианта списка.
- * Тестовые записи добавляем после создания сделки. Повторный запуск не создаёт дубликаты.
- */
-if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true) {
+if (!defined('B_PROLOG_INCLUDED') || B_PROLOG_INCLUDED !== true)
     exit;
-}
 
+// создание HL-блока и настрйока его
 function createEquipmentBlock(): int
 {
     $block = HighloadBlockTable::getList([
-        'filter' => ['LOGIC' => 'OR', '=NAME' => HL_NAME, '=TABLE_NAME' => HL_TABLE],
+        'filter' => [
+            'LOGIC' => 'OR',
+            '=NAME' => HL_NAME,
+            '=TABLE_NAME' => HL_TABLE
+        ],
     ])->fetch();
     if ($block && ($block['NAME'] !== HL_NAME || $block['TABLE_NAME'] !== HL_TABLE)) {
         throw new \RuntimeException('Имя или таблица HL-блока уже заняты.');
@@ -27,8 +39,10 @@ function createEquipmentBlock(): int
         checkResult($result);
         $block = ['ID' => $result->getId()];
     }
-    $blockId = (int)$block['ID'];
+    $blockId = (int) $block['ID'];
     $langKey = ['ID' => $blockId, 'LID' => 'ru'];
+
+    // проверка ru
     if (!HighloadBlockLangTable::getByPrimary($langKey)->fetch()) {
         checkResult(HighloadBlockLangTable::add($langKey + ['NAME' => 'Оборудование']));
     }
@@ -39,19 +53,27 @@ function createEquipmentBlock(): int
         'UF_CREATED_TIME' => ['datetime', 'Дата создания'],
         'UF_DEAL_ID' => ['integer', 'ID сделки'],
     ];
+
     $fieldIds = [];
     $userFields = new \CUserTypeEntity();
+
     foreach ($fields as $name => [$type, $title]) {
-        $existing = \CUserTypeEntity::GetList([], [
-            'ENTITY_ID' => 'HLBLOCK_' . $blockId, 'FIELD_NAME' => $name,
-        ])->Fetch();
+        $existing = \CUserTypeEntity::GetList(
+            [],
+            [
+                'ENTITY_ID' => 'HLBLOCK_' . $blockId,
+                'FIELD_NAME' => $name,
+            ]
+        )->Fetch();
+
         if ($existing) {
             if ($existing['USER_TYPE_ID'] !== $type || $existing['MULTIPLE'] !== 'N') {
                 throw new \RuntimeException('Неверный тип поля ' . $name);
             }
-            $fieldIds[$name] = (int)$existing['ID'];
+            $fieldIds[$name] = (int) $existing['ID'];
             continue;
         }
+
         $id = $userFields->Add([
             'ENTITY_ID' => 'HLBLOCK_' . $blockId,
             'FIELD_NAME' => $name,
@@ -64,13 +86,13 @@ function createEquipmentBlock(): int
             'EDIT_FORM_LABEL' => ['ru' => $title],
             'LIST_COLUMN_LABEL' => ['ru' => $title],
             'LIST_FILTER_LABEL' => ['ru' => $title],
-            'SETTINGS' => $type === 'datetime' ? ['DEFAULT_VALUE' => ['TYPE' => 'NOW', 'VALUE' => '']] : [],
+            'SETTINGS' => ['DEFAULT_VALUE' => ['TYPE' => 'NOW', 'VALUE' => '']]
         ]);
         if (!$id) {
             global $APPLICATION;
-            throw new \RuntimeException($APPLICATION->GetException()?->GetString() ?? ('Не удалось создать ' . $name));
+            throw new \RuntimeException($APPLICATION->GetException()?->GetString());
         }
-        $fieldIds[$name] = (int)$id;
+        $fieldIds[$name] = (int) $id;
     }
 
     $enum = new \CUserFieldEnum();
@@ -92,20 +114,28 @@ function createEquipmentBlock(): int
 }
 
 // Можно передать свои названия оборудования вторым аргументом.
-function addTestEquipment(int $dealId, array $names = []): void
+function addTestEquipment(int $dealId): void
 {
     checkReadAccess(\CCrmOwnerType::Deal, $dealId);
     $dataClass = getEquipmentClass();
-    $names = $names ?: [
+
+    // хардкод пример
+    $names = [
         'router' => 'Тестовый роутер',
         'laptop' => 'Тестовый ноутбук',
         'monitor' => 'Тестовый монитор',
     ];
+
     foreach (getEquipmentTypes() as $typeId => $type) {
-        if (!isset($names[$type['XML_ID']])) {
+        if (!isset($names[$type['XML_ID']]))
             continue;
-        }
-        $fields = ['UF_NAME' => $names[$type['XML_ID']], 'UF_TYPE' => $typeId, 'UF_DEAL_ID' => $dealId];
+
+        $fields = [
+            'UF_NAME' => $names[$type['XML_ID']],
+            'UF_TYPE' => $typeId,
+            'UF_DEAL_ID' => $dealId
+        ];
+
         if (!$dataClass::getList(['filter' => $fields, 'limit' => 1])->fetch()) {
             checkResult($dataClass::add($fields + ['UF_CREATED_TIME' => new DateTime()]));
         }
