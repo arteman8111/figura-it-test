@@ -1,0 +1,21 @@
+/* Информационный блок без управляющих элементов. Выделение получают только просмотры пользователя 5. */
+.figura-equipment-count {
+    box-sizing: border-box;
+    padding: 12px 16px;
+    cursor: default;
+}
+
+.figura-equipment-count__value {
+    font-variant-numeric: tabular-nums;
+}
+
+.figura-equipment-count--highlight {
+    border-left: 4px solid #1477b8;
+    border-radius: 4px;
+    background: #eaf6ff;
+}
+
+.figura-equipment-count--highlight .figura-equipment-count__value {
+    color: #075184;
+    font-weight: 700;
+}
